@@ -59,3 +59,8 @@ Add additional rules above the fallback if the tunnel will front more services l
 - Anytime the upstream port or hostname changes, update the tunnel's ingress rule in the Cloudflare dashboard and restart the `brcma-tunnel` container (`docker compose restart brcma-tunnel`).
 - Rotate the tunnel credentials if compromised by deleting/recreating the tunnel (`cloudflared tunnel delete brcma-prod`) and repeating these steps, then update the stored token.
 - If you need zero downtime while updating, spin up a secondary tunnel and swap the DNS record using `cloudflared tunnel route dns`.
+
+## Troubleshooting
+- **Error: `Incorrect Usage: flag needs an argument: -token`** – the tunnel container started without the `CLOUDFLARE_TUNNEL_TOKEN_PROD` environment variable populated. Double-check the `.env.production` file (or secrets manager) contains `CLOUDFLARE_TUNNEL_TOKEN_PROD=<token>` with no surrounding quotes and restart the container: `docker compose --profile production up -d brcma-tunnel`.
+- Verify the variable is making it into the container: `docker compose config | grep -A2 CLOUDFLARE_TUNNEL_TOKEN_PROD`. If the line is blank, export it in your shell or point `docker compose` at the correct `.env` file.
+- If the token changed, restart the service after updating the env file so the new value is injected.
