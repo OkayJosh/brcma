@@ -1,7 +1,10 @@
+version: "3.9"
+
 volumes:
   nginx_logs:
   certbot_certs:
   certbot_webroot:
+
 
 networks:
   brcma-network:
@@ -13,9 +16,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: brcma-api
+    profiles: [ "backend", "production" ]
+    env_file:
+      - .env.production
     environment:
-      - DEBUG=${DEBUG:-True}
-      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=False
+      - ENVIRONMENT=production
     networks:
       - brcma-network
     expose:
@@ -46,16 +52,19 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: brcma-frontend
+    profiles: [ "frontend", "production" ]
+    env_file:
+      - .env.production
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
-      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-http://localhost:8080/app}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080/brcma}
-      - NEXT_PUBLIC_ENVIRONMENT=${NEXT_PUBLIC_ENVIRONMENT:-development}
-      - INTERNAL_API_URL=${INTERNAL_API_URL:-http://brcma:8030}
-      - NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH:-/app}
-      - BASE_PATH=${BASE_PATH:-/app}
-      - PUBLIC_URL=${PUBLIC_URL:-/app}
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:8080/brcma}
+      - NODE_ENV=production
+      - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_ENVIRONMENT=${NEXT_PUBLIC_ENVIRONMENT}
+      - INTERNAL_API_URL=${INTERNAL_API_URL}
+      - NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}
+      - BASE_PATH=${BASE_PATH}
+      - PUBLIC_URL=${PUBLIC_URL}
+      - VITE_API_URL=${VITE_API_URL}
     networks:
       - brcma-network
     expose:
@@ -70,24 +79,18 @@ services:
   brcma-nginx:
     image: nginx:1.27-alpine
     container_name: brcma-nginx
+    profiles: [ "proxy", "production" ]
     depends_on:
-      brcma:
-        condition: service_started
-      brcma-frontend:
-        condition: service_started
+      - brcma
+      - brcma-frontend
     environment:
-      - DOMAIN=${DOMAIN:-localhost}
-      # Enable nginx envsubst so our template (nginx/conf.d/brcma.conf.template)
-      # is rendered into /etc/nginx/conf.d before nginx starts.
-      - NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates
-      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
-      - NGINX_ENVSUBST_TEMPLATE_SUFFIX=.template
+      - DOMAIN=${DOMAIN}
     ports:
-      - "${NGINX_PORT:-8080}:80"
+      - "8080:80"
     networks:
       - brcma-network
     volumes:
-      - ./nginx/conf.d:/etc/nginx/templates:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/snippets:/etc/nginx/snippets:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/app/logs
@@ -99,7 +102,7 @@ services:
           memory: 512M
           cpus: '0.5'
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost/health || exit 1"]
+      test: [ "CMD-SHELL", "wget -q -O - http://localhost/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -107,24 +110,14 @@ services:
   brcma-tunnel:
     image: cloudflare/cloudflared:latest
     container_name: brcma-tunnel
-    profiles: ["cloudflared", "production"]
-    environment:
-      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
-    command:
-      - /bin/sh
-      - -c
-      - |
-          if [ -z "$${CLOUDFLARE_TUNNEL_TOKEN:-}" ]; then
-            echo "CLOUDFLARE_TUNNEL_TOKEN is required for cloudflared" >&2
-            exit 1
-          fi
-          exec cloudflared tunnel --no-autoupdate run --token "$${CLOUDFLARE_TUNNEL_TOKEN}"
+    profiles: [ "proxy", "production" ]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN_PROD}
     restart: unless-stopped
     networks:
       - brcma-network
     deploy:
       replicas: 1
-      resources:
+      res]ources:
         limits:
           memory: 128M
           cpus: '0.1'
@@ -137,7 +130,7 @@ services:
         max_attempts: 3
         window: 120s
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:2000/ready || exit 1"]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:2000/ready || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
