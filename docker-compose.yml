@@ -117,7 +117,7 @@ services:
       - brcma-network
     deploy:
       replicas: 1
-      res]ources:
+      resources:
         limits:
           memory: 128M
           cpus: '0.1'
