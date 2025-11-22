@@ -1,0 +1,44 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name $DOMAIN;
+
+    access_log /app/logs/access.log;
+    error_log /app/logs/error.log;
+
+    location = /health {
+        add_header Content-Type application/json;
+        return 200 '{"status":"ok"}';
+    }
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location = /app {
+        return 301 /app/;
+    }
+
+    location /app/ {
+        proxy_pass http://brcma-frontend/;
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_intercept_errors on;
+        error_page 404 = /app/;
+    }
+
+    location = /brcma {
+        return 301 /brcma/;
+    }
+
+    location /brcma/ {
+        proxy_pass http://brcma:8030/;
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    location / {
+        return 301 /app/;
+    }
+}
