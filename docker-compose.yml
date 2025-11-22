@@ -111,6 +111,8 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: brcma-tunnel
     profiles: [ "proxy", "production" ]
+    env_file:
+      - .env.production
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN_PROD}
     restart: unless-stopped
     networks:
