@@ -1,5 +1,3 @@
-version: "3.9"
-
 volumes:
   nginx_logs:
   certbot_certs:

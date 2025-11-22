@@ -18,4 +18,4 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
-app.include_router(brcma.router, prefix="/brcma", tags=["BRCMA"])
+app.include_router(brcma.router, prefix="/api", tags=["BRCMA"])
