@@ -26,9 +26,14 @@ def run_brcma(data: BrcmaInput) -> BrcmaResult:
     # Clamp S to [0,1]
     S = np.clip(S, 0.0, 1.0)
 
-    # RS and CC
-    RS = S @ WEC            # shape (n,)
-    CC = S.T @ WRC          # shape (m,)
+    # Apply weights before matching.
+    # Each requirement weight scales its row, each criterion weight scales its column.
+    # This makes "assign weights first, then match" explicit.
+    S_weighted = (WRC[:, None] * S) * WEC[None, :]  # n x m
+
+    # RS and CC are sums over the weighted matching matrix.
+    RS = S_weighted.sum(axis=1)  # shape (n,)
+    CC = S_weighted.sum(axis=0)  # shape (m,)
 
     RS_norm = _safe_norm(RS)
     CC_norm = _safe_norm(CC)

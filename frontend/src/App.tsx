@@ -109,7 +109,8 @@ export default function App() {
         <span className="hero-eyebrow">Decision Support</span>
         <h1>BRCMA – Bi-Directional Requirement–Criterion Matching</h1>
         <p>
-          Configure your requirement matrix, tune weights, and run the analysis to uncover requirement strength,
+          Configure your requirement matrix, set requirement and criterion weights (applied before matching),
+          and run the analysis to uncover requirement strength,
           coverage, and recommended design options.
         </p>
       </header>
@@ -118,7 +119,9 @@ export default function App() {
         <section className="card">
           <div className="stack">
             <h2 className="section-title">Input Matrix</h2>
-            <p className="section-description">Choose your input method and configure the data before running BRCMA.</p>
+            <p className="section-description">
+              Choose your input method and configure the data. Weights are applied before matching.
+            </p>
           </div>
 
           {/* Input Mode Selector */}
@@ -164,7 +167,10 @@ export default function App() {
             </button>
             {error && <span className="inline-error">{error}</span>}
           </div>
-          <p className="table-note">Matrix values are clamped between 0 and 1 to ensure valid similarity scores.</p>
+          <p className="table-note">
+            Matrix values are clamped between 0 and 1 to ensure valid similarity scores. Weights are applied before
+            matching to compute requirement strength and criterion coverage.
+          </p>
         </section>
 
         <section className="card">

@@ -175,7 +175,7 @@ WEC,1,1,1,`;
         <h4>CSV Format</h4>
         <p className="section-description">
           Upload a CSV with criteria in columns and requirements in rows. Include WRC (requirement weights)
-          in the last column and WEC (criterion weights) in the last row.
+          in the last column and WEC (criterion weights) in the last row. Weights are applied before matching.
         </p>
         <div className="csv-example">
           <pre className="code-block">
