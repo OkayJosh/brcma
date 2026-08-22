@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import brcma
+from app.routers import brcma, eidf
 
-app = FastAPI(title="BRCMA API", version="0.1.0")
+app = FastAPI(title="BRCMA + EIDF API", version="0.2.0",
+              description="Bi-Directional Requirement-Criterion Matching Algorithm "
+                          "with Evaluation-Integrated Design Framework enhancements")
 
 # CORS for Vite dev server
 app.add_middleware(
@@ -16,6 +18,10 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "0.2.0", "eidf_enabled": True}
 
-app.include_router(brcma.router, prefix="/api", tags=["BRCMA"])
+# Original BRCMA endpoint (backward compatible)
+app.include_router(brcma.router, prefix="/api", tags=["BRCMA (Original)"])
+
+# Enhanced EIDF endpoint
+app.include_router(eidf.router, prefix="/eidf", tags=["EIDF (Enhanced)"])
