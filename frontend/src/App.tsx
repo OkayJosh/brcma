@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { runBrcma } from "./lib/api";
+import { runBrcma, runEidf } from "./lib/api";
 import { ResultsView } from "./components/ResultsView";
+import { EidfResultsView } from "./components/EidfResultsView";
 import { MatrixEditor } from "./components/MatrixEditor";
 import { CsvUploader } from "./components/CsvUploader";
 
@@ -13,6 +14,10 @@ type BrcmaInput = {
   thr_sr?: number;
   thr_wr?: number;
   thr_mr?: number;
+  // EIDF extensions
+  R_descriptions?: string[];
+  C_characteristic?: string[];
+  W_char?: Record<string, number>;
 };
 
 const demo: BrcmaInput = {
@@ -33,6 +38,7 @@ export default function App() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<"manual" | "csv">("manual");
+  const [engineMode, setEngineMode] = useState<"brcma" | "eidf">("eidf");
 
   function updateMatrix(i: number, j: number, v: number) {
     const S = data.S.map((row) => row.slice());
@@ -55,7 +61,26 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await runBrcma(data);
+      let res;
+      if (engineMode === "eidf") {
+        // Add C_characteristic if not present (auto-detect from criterion IDs)
+        const payload = { ...data };
+        if (!payload.C_characteristic || payload.C_characteristic.length === 0) {
+          // Auto-map: EC-FS-* -> QC-01, EC-PE-* -> QC-02, etc.
+          const prefixMap: Record<string, string> = {
+            "EC-FS": "QC-01", "EC-PE": "QC-02", "EC-CO": "QC-03",
+            "EC-US": "QC-04", "EC-RE": "QC-05", "EC-SC": "QC-06",
+            "EC-MA": "QC-07", "EC-PO": "QC-08", "EC-SF": "QC-09",
+          };
+          payload.C_characteristic = payload.C.map((c) => {
+            const prefix = c.substring(0, 5);
+            return prefixMap[prefix] || "QC-01";
+          });
+        }
+        res = await runEidf(payload);
+      } else {
+        res = await runBrcma(data);
+      }
       setResult(res);
     } catch (e: any) {
       setError(e?.message ?? "Failed");
@@ -67,7 +92,7 @@ export default function App() {
   function handleCsvLoaded(csvData: BrcmaInput) {
     setData(csvData);
     setError(null);
-    setResult(null); // Clear previous results
+    setResult(null);
   }
 
   function handleCsvError(errorMsg: string) {
@@ -76,21 +101,14 @@ export default function App() {
 
   function exportToCSV() {
     const rows: string[] = [];
-
-    // Header row: criteria names + WRC column
     const header = ["", ...data.C, "WRC"];
     rows.push(header.join(","));
-
-    // Requirement rows
     for (let i = 0; i < data.R.length; i++) {
       const row = [data.R[i], ...data.S[i].map(v => v.toString()), data.WRC[i].toString()];
       rows.push(row.join(","));
     }
-
-    // WEC row
     const wecRow = ["WEC", ...data.WEC.map(v => v.toString()), ""];
     rows.push(wecRow.join(","));
-
     const csvContent = rows.join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -103,28 +121,68 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  const isEidfResult = engineMode === "eidf" && result?.Q_S !== undefined;
+
   return (
     <div className="app-shell">
       <header className="hero">
-        <span className="hero-eyebrow">Decision Support</span>
-        <h1>BRCMA – Bi-Directional Requirement–Criterion Matching</h1>
+        <span className="hero-eyebrow">
+          {engineMode === "eidf" ? "EIDF — Evaluation-Integrated Design Framework" : "Decision Support"}
+        </span>
+        <h1>
+          {engineMode === "eidf"
+            ? "EIDF — Design-Time Quality Assessment"
+            : "BRCMA — Bi-Directional Requirement–Criterion Matching"
+          }
+        </h1>
         <p>
-          Configure your requirement matrix, set requirement and criterion weights (applied before matching),
-          and run the analysis to uncover requirement strength,
-          coverage, and recommended design options.
+          {engineMode === "eidf"
+            ? "Assess design quality against ISO/IEC 25010:2023 using the Q(S) composite scoring function. Upload your requirement-criterion matrix, run the EIDF-DTAA, and get characteristic-level scores, violation detection, and ranked recommendations."
+            : "Configure your requirement matrix, set requirement and criterion weights, and run the analysis to uncover requirement strength, coverage, and recommended design options."
+          }
         </p>
       </header>
 
       <main className="page-content">
+        {/* Engine Mode Selector */}
+        <section className="card">
+          <div className="stack">
+            <h2 className="section-title">Assessment Engine</h2>
+          </div>
+          <div className="engine-selector">
+            <div className="segmented">
+              <button
+                className={engineMode === "eidf" ? "active eidf-active" : ""}
+                onClick={() => { setEngineMode("eidf"); setResult(null); }}
+              >
+                🔬 EIDF Enhanced
+              </button>
+              <button
+                className={engineMode === "brcma" ? "active" : ""}
+                onClick={() => { setEngineMode("brcma"); setResult(null); }}
+              >
+                📊 BRCMA Original
+              </button>
+            </div>
+            {engineMode === "eidf" && (
+              <div className="engine-badge">
+                ISO/IEC 25010:2023 · Q(S) Scoring · Violation Detection · 67 SRC Criteria
+              </div>
+            )}
+          </div>
+        </section>
+
         <section className="card">
           <div className="stack">
             <h2 className="section-title">Input Matrix</h2>
             <p className="section-description">
-              Choose your input method and configure the data. Weights are applied before matching.
+              {engineMode === "eidf"
+                ? "Upload a CSV with SRS requirements (rows) × SRC evaluation criteria (columns). Use the three-level scale: 0.0 (Not Addressed), 0.5 (Partially), 1.0 (Fully)."
+                : "Choose your input method and configure the data. Weights are applied before matching."
+              }
             </p>
           </div>
 
-          {/* Input Mode Selector */}
           <div className="input-mode-selector">
             <div className="segmented">
               <button
@@ -162,26 +220,47 @@ export default function App() {
           <hr className="divider" />
 
           <div className="button-row">
-            <button className="button" onClick={onRun} disabled={loading}>
-              {loading ? "Running analysis…" : "Run analysis"}
+            <button
+              className={`button ${engineMode === "eidf" ? "button-eidf" : ""}`}
+              onClick={onRun}
+              disabled={loading}
+            >
+              {loading
+                ? "Running assessment…"
+                : engineMode === "eidf"
+                  ? "🔬 Run EIDF Assessment"
+                  : "Run analysis"
+              }
             </button>
             {error && <span className="inline-error">{error}</span>}
           </div>
-          <p className="table-note">
-            Matrix values are clamped between 0 and 1 to ensure valid similarity scores. Weights are applied before
-            matching to compute requirement strength and criterion coverage.
-          </p>
         </section>
 
         <section className="card">
           <div className="stack">
-            <h2 className="section-title">Results</h2>
-            <p className="section-description">Visual summaries and classifications appear once the analysis completes.</p>
+            <h2 className="section-title">
+              {engineMode === "eidf" ? "EIDF Assessment Results" : "Results"}
+            </h2>
+            <p className="section-description">
+              {engineMode === "eidf"
+                ? "Composite quality score Q(S), ISO/IEC 25010:2023 characteristic profile, violations, and ranked recommendations."
+                : "Visual summaries and classifications appear once the analysis completes."
+              }
+            </p>
           </div>
           {result ? (
-            <ResultsView result={result} R={data.R} C={data.C} />
+            isEidfResult ? (
+              <EidfResultsView result={result} R={data.R} C={data.C} />
+            ) : (
+              <ResultsView result={result} R={data.R} C={data.C} />
+            )
           ) : (
-            <div className="empty-state">Run the analysis to populate requirement strength and design options.</div>
+            <div className="empty-state">
+              {engineMode === "eidf"
+                ? "Upload your requirement-criterion matrix and run the EIDF assessment to see Q(S) scores, characteristic profiles, and recommendations."
+                : "Run the analysis to populate requirement strength and design options."
+              }
+            </div>
           )}
         </section>
       </main>

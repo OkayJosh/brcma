@@ -8,7 +8,20 @@ export async function runBrcma(payload: any) {
   });
   if (!r.ok) {
     const msg = await r.text();
-    throw new Error(msg || `HTTP {r.status}`);
+    throw new Error(msg || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+export async function runEidf(payload: any) {
+  const r = await fetch(`${BASE}/eidf/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) {
+    const msg = await r.text();
+    throw new Error(msg || `HTTP ${r.status}`);
   }
   return r.json();
 }
