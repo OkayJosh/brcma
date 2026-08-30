@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || "https://brcma.dependly.app/brcma";
+const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export async function runBrcma(payload: any) {
   const r = await fetch(`${BASE}/api/run`, {

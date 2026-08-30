@@ -4,6 +4,10 @@ import { ResultsView } from "./components/ResultsView";
 import { EidfResultsView } from "./components/EidfResultsView";
 import { MatrixEditor } from "./components/MatrixEditor";
 import { CsvUploader } from "./components/CsvUploader";
+import { Step1Configure } from "./components/Step1Configure";
+import { Step2InputData } from "./components/Step2InputData";
+import { Step3Results } from "./components/Step3Results";
+import { Layout } from "./components/Layout";
 
 type BrcmaInput = {
   R: string[];
@@ -21,14 +25,14 @@ type BrcmaInput = {
 };
 
 const demo: BrcmaInput = {
-  R: ["r1", "r2", "r3"],
-  C: ["c1", "c2", "c3"],
+  R: ["Login Module", "Patient Records", "Billing API"],
+  C: ["EC-FS-01", "EC-PE-01", "EC-SC-01", "EC-US-01"],
   WRC: [1, 1, 1],
-  WEC: [1, 1, 1],
+  WEC: [1, 1, 1, 1],
   S: [
-    [0.9, 0.8, 0.6],
-    [0.2, 0.4, 0.3],
-    [0.0, 0.0, 0.0],
+    [0.9, 0.8, 1.0, 0.8],
+    [0.2, 0.4, 0.3, 0.9],
+    [0.0, 0.5, 0.9, 0.0],
   ],
 };
 
@@ -39,6 +43,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<"manual" | "csv">("manual");
   const [engineMode, setEngineMode] = useState<"brcma" | "eidf">("eidf");
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedDomain, setSelectedDomain] = useState("generic");
 
   function updateMatrix(i: number, j: number, v: number) {
     const S = data.S.map((row) => row.slice());
@@ -82,6 +88,7 @@ export default function App() {
         res = await runBrcma(data);
       }
       setResult(res);
+      setCurrentStep(3);
     } catch (e: any) {
       setError(e?.message ?? "Failed");
     } finally {
@@ -124,146 +131,48 @@ export default function App() {
   const isEidfResult = engineMode === "eidf" && result?.Q_S !== undefined;
 
   return (
-    <div className="app-shell">
-      <header className="hero">
-        <span className="hero-eyebrow">
-          {engineMode === "eidf" ? "EIDF — Evaluation-Integrated Design Framework" : "Decision Support"}
-        </span>
-        <h1>
-          {engineMode === "eidf"
-            ? "EIDF — Design-Time Quality Assessment"
-            : "BRCMA — Bi-Directional Requirement–Criterion Matching"
-          }
-        </h1>
-        <p>
-          {engineMode === "eidf"
-            ? "Assess design quality against ISO/IEC 25010:2023 using the Q(S) composite scoring function. Upload your requirement-criterion matrix, run the EIDF-DTAA, and get characteristic-level scores, violation detection, and ranked recommendations."
-            : "Configure your requirement matrix, set requirement and criterion weights, and run the analysis to uncover requirement strength, coverage, and recommended design options."
-          }
-        </p>
-      </header>
+    <Layout currentStep={currentStep}>
+      {currentStep === 1 && (
+        <Step1Configure 
+          engineMode={engineMode}
+          setEngineMode={setEngineMode}
+          selectedDomain={selectedDomain}
+          setSelectedDomain={setSelectedDomain}
+          onNext={() => setCurrentStep(2)}
+        />
+      )}
+      
+      {currentStep === 2 && (
+        <Step2InputData 
+          engineMode={engineMode}
+          inputMode={inputMode}
+          setInputMode={setInputMode}
+          data={data}
+          setData={setData}
+          updateMatrix={updateMatrix}
+          updateWRC={updateWRC}
+          updateWEC={updateWEC}
+          handleCsvLoaded={handleCsvLoaded}
+          handleCsvError={handleCsvError}
+          error={error}
+          loading={loading}
+          onBack={() => setCurrentStep(1)}
+          onRun={onRun}
+        />
+      )}
 
-      <main className="page-content">
-        {/* Engine Mode Selector */}
-        <section className="card">
-          <div className="stack">
-            <h2 className="section-title">Assessment Engine</h2>
-          </div>
-          <div className="engine-selector">
-            <div className="segmented">
-              <button
-                className={engineMode === "eidf" ? "active eidf-active" : ""}
-                onClick={() => { setEngineMode("eidf"); setResult(null); }}
-              >
-                🔬 EIDF Enhanced
-              </button>
-              <button
-                className={engineMode === "brcma" ? "active" : ""}
-                onClick={() => { setEngineMode("brcma"); setResult(null); }}
-              >
-                📊 BRCMA Original
-              </button>
-            </div>
-            {engineMode === "eidf" && (
-              <div className="engine-badge">
-                ISO/IEC 25010:2023 · Q(S) Scoring · Violation Detection · 67 SRC Criteria
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="stack">
-            <h2 className="section-title">Input Matrix</h2>
-            <p className="section-description">
-              {engineMode === "eidf"
-                ? "Upload a CSV with SRS requirements (rows) × SRC evaluation criteria (columns). Use the three-level scale: 0.0 (Not Addressed), 0.5 (Partially), 1.0 (Fully)."
-                : "Choose your input method and configure the data. Weights are applied before matching."
-              }
-            </p>
-          </div>
-
-          <div className="input-mode-selector">
-            <div className="segmented">
-              <button
-                className={inputMode === "manual" ? "active" : ""}
-                onClick={() => setInputMode("manual")}
-              >
-                Manual Input
-              </button>
-              <button
-                className={inputMode === "csv" ? "active" : ""}
-                onClick={() => setInputMode("csv")}
-              >
-                CSV Upload
-              </button>
-            </div>
-            {inputMode === "manual" && (
-              <button className="button button-secondary" onClick={exportToCSV}>
-                Export to CSV
-              </button>
-            )}
-          </div>
-
-          {inputMode === "manual" ? (
-            <MatrixEditor
-              data={data}
-              onMatrixChange={updateMatrix}
-              onWRCChange={updateWRC}
-              onWECChange={updateWEC}
-              setData={setData}
-            />
-          ) : (
-            <CsvUploader onDataLoaded={handleCsvLoaded} onError={handleCsvError} />
-          )}
-
-          <hr className="divider" />
-
-          <div className="button-row">
-            <button
-              className={`button ${engineMode === "eidf" ? "button-eidf" : ""}`}
-              onClick={onRun}
-              disabled={loading}
-            >
-              {loading
-                ? "Running assessment…"
-                : engineMode === "eidf"
-                  ? "🔬 Run EIDF Assessment"
-                  : "Run analysis"
-              }
-            </button>
-            {error && <span className="inline-error">{error}</span>}
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="stack">
-            <h2 className="section-title">
-              {engineMode === "eidf" ? "EIDF Assessment Results" : "Results"}
-            </h2>
-            <p className="section-description">
-              {engineMode === "eidf"
-                ? "Composite quality score Q(S), ISO/IEC 25010:2023 characteristic profile, violations, and ranked recommendations."
-                : "Visual summaries and classifications appear once the analysis completes."
-              }
-            </p>
-          </div>
-          {result ? (
-            isEidfResult ? (
-              <EidfResultsView result={result} R={data.R} C={data.C} />
-            ) : (
-              <ResultsView result={result} R={data.R} C={data.C} />
-            )
-          ) : (
-            <div className="empty-state">
-              {engineMode === "eidf"
-                ? "Upload your requirement-criterion matrix and run the EIDF assessment to see Q(S) scores, characteristic profiles, and recommendations."
-                : "Run the analysis to populate requirement strength and design options."
-              }
-            </div>
-          )}
-        </section>
-      </main>
-    </div>
+      {currentStep === 3 && (
+        <Step3Results 
+          engineMode={engineMode}
+          result={result}
+          data={data}
+          onBack={() => setCurrentStep(2)}
+          onStartOver={() => {
+            setCurrentStep(1);
+            setResult(null);
+          }}
+        />
+      )}
+    </Layout>
   );
 }

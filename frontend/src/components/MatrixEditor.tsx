@@ -79,92 +79,104 @@ export const MatrixEditor: React.FC<Props> = ({ data, onMatrixChange, onWRCChang
   ];
 
   return (
-    <div className="stack">
-      <div className="button-row">
-        <button className="button button-secondary" onClick={addRequirement} type="button">
-          + Requirement
-        </button>
-        <button className="button button-secondary" onClick={addCriterion} type="button">
-          + Criterion
-        </button>
-      </div>
-
-      <div className="metric-grid">
-        <div className="metric-tile">
-          <h4>Total requirements</h4>
-          <span>{n}</span>
-        </div>
-        <div className="metric-tile">
-          <h4>Total criteria</h4>
-          <span>{m}</span>
-        </div>
-        <div className="metric-tile">
-          <h4>Matrix entries</h4>
-          <span>{n * m}</span>
+    <div className="flex flex-col gap-8 w-full">
+      {/* Header Actions */}
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex gap-4">
+          <button 
+            className="px-4 py-2 rounded-full border border-outline-variant text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container hover:text-on-surface transition-all duration-200 flex items-center gap-2"
+            onClick={addRequirement} type="button">
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Requirement
+          </button>
+          <button 
+            className="px-4 py-2 rounded-full border border-outline-variant text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container hover:text-on-surface transition-all duration-200 flex items-center gap-2"
+            onClick={addCriterion} type="button">
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Criterion
+          </button>
         </div>
       </div>
 
-      <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>
-                <div className="table-label">
-                  <span className="field-label">Req / Crit</span>
-                  <span>Similarity</span>
-                </div>
-              </th>
-              {data.C.map((c, j) => (
-                <th key={j}>
-                  <div className="cell-stack">
-                    <label className="table-label">
-                      <span className="field-label">Criterion</span>
-                      <input
-                        className="input"
-                        aria-label={`Criterion ${j + 1} name`}
-                        value={c}
-                        onChange={(e) => renameCriterion(j, e.target.value)}
-                      />
-                    </label>
-                    <label className="table-label">
-                      <span className="field-label">Weight</span>
-                      <input
-                        className="input"
-                        type="number"
-                        step="0.05"
-                        value={data.WEC[j]}
-                        onChange={(e) => {
-                          const next = Number(e.target.value);
-                          if (!Number.isNaN(next)) {
-                            onWECChange(j, next);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
+      {/* Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="glass-panel border-t-2 border-t-primary rounded-xl p-4 flex flex-col gap-1">
+          <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Requirements</h4>
+          <span className="font-headline-lg text-headline-lg text-on-surface font-semibold">{n}</span>
+        </div>
+        <div className="glass-panel border-t-2 border-t-secondary rounded-xl p-4 flex flex-col gap-1">
+          <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Criteria</h4>
+          <span className="font-headline-lg text-headline-lg text-on-surface font-semibold">{m}</span>
+        </div>
+        <div className="glass-panel border-t-2 border-t-tertiary-fixed-dim rounded-xl p-4 flex flex-col gap-1">
+          <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Matrix Entries</h4>
+          <span className="font-headline-lg text-headline-lg text-on-surface font-semibold">{n * m}</span>
+        </div>
+      </div>
+
+      {/* Data Table */}
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-label-md text-label-md text-on-surface">Data Editor</h4>
+          <span className="font-label-sm text-label-sm text-on-surface-variant">Edit values directly</span>
+        </div>
+        <div className="overflow-x-auto rounded-lg border border-outline-variant/50 bg-surface-container-lowest shadow-sm">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-outline-variant/50 bg-surface-container/50">
+                <th className="p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[200px]">
+                  Req \\ Crit
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.R.map((r, i) => (
-              <tr key={i}>
-                <td>
-                  <div className="cell-stack">
-                    <label className="table-label">
-                      <span className="field-label">Requirement</span>
-                      <input
-                        className="input"
-                        aria-label={`Requirement ${i + 1} name`}
-                        value={r}
-                        onChange={(e) => renameRequirement(i, e.target.value)}
-                      />
-                    </label>
-                    <div className="cell-meta">
-                      <label className="table-label">
-                        <span className="field-label">Weight</span>
+                {data.C.map((c, j) => (
+                  <th key={j} className="p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider min-w-[150px]">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-on-surface-variant">Criterion Name</span>
                         <input
-                          className="input"
+                          className="w-full bg-surface-container-lowest border border-outline-variant rounded px-2 py-1 text-on-surface focus:outline-none focus:border-secondary transition-colors"
+                          aria-label={`Criterion ${j + 1} name`}
+                          value={c}
+                          onChange={(e) => renameCriterion(j, e.target.value)}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-on-surface-variant">Weight</span>
+                        <input
+                          className="w-full bg-surface-container-lowest border border-outline-variant rounded px-2 py-1 text-on-surface focus:outline-none focus:border-secondary transition-colors"
+                          type="number"
+                          step="0.05"
+                          value={data.WEC[j]}
+                          onChange={(e) => {
+                            const next = Number(e.target.value);
+                            if (!Number.isNaN(next)) {
+                              onWECChange(j, next);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="font-body-md text-body-md text-on-surface">
+              {data.R.map((r, i) => (
+                <tr key={i} className="border-b border-outline-variant/30 hover:bg-surface-container/30 transition-colors">
+                  <td className="p-4 align-top">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-on-surface-variant font-label-sm uppercase tracking-wider">Requirement</span>
+                        <input
+                          className="w-full bg-surface-container-lowest border border-outline-variant rounded px-2 py-1 text-on-surface font-medium focus:outline-none focus:border-secondary transition-colors"
+                          aria-label={`Requirement ${i + 1} name`}
+                          value={r}
+                          onChange={(e) => renameRequirement(i, e.target.value)}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-on-surface-variant font-label-sm uppercase tracking-wider">Weight</span>
+                        <input
+                          className="w-full bg-surface-container-lowest border border-outline-variant rounded px-2 py-1 text-on-surface-variant focus:outline-none focus:border-secondary transition-colors"
                           type="number"
                           step="0.05"
                           value={data.WRC[i]}
@@ -175,57 +187,61 @@ export const MatrixEditor: React.FC<Props> = ({ data, onMatrixChange, onWRCChang
                             }
                           }}
                         />
-                      </label>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                {data.C.map((_, j) => (
-                  <td key={j}>
-                    <label className="table-label">
-                      <span className="field-label">Similarity</span>
-                      <input
-                        className="input"
-                        type="number"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={data.S[i][j]}
-                        onChange={(e) => {
-                          const next = Number(e.target.value);
-                          if (!Number.isNaN(next)) {
-                            onMatrixChange(i, j, next);
-                          }
-                        }}
-                        aria-label={`Similarity for ${data.R[i]} vs ${data.C[j]}`}
-                      />
-                    </label>
                   </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  {data.C.map((_, j) => (
+                    <td key={j} className="p-4 align-top">
+                      <div className="flex flex-col gap-1 mt-6">
+                        <span className="text-[10px] text-on-surface-variant font-label-sm uppercase tracking-wider">Similarity</span>
+                        <input
+                          className="w-full bg-surface-container-low border border-outline-variant rounded px-2 py-1 text-secondary font-medium focus:outline-none focus:border-secondary transition-colors text-center"
+                          type="number"
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          value={data.S[i][j]}
+                          onChange={(e) => {
+                            const next = Number(e.target.value);
+                            if (!Number.isNaN(next)) {
+                              onMatrixChange(i, j, next);
+                            }
+                          }}
+                          aria-label={`Similarity for ${data.R[i]} vs ${data.C[j]}`}
+                        />
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="grid-split">
-        {thresholds.map(({ key, label, description, defaultValue }) => (
-          <div key={key} className="subtle-card stack">
-            <span className="field-label">{label}</span>
-            <input
-              className="input"
-              type="number"
-              step="0.05"
-              value={(data[key] as number | undefined) ?? defaultValue}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                if (!Number.isNaN(next)) {
-                  updateThreshold(key, next);
-                }
-              }}
-            />
-            <span className="table-note">{description}</span>
-          </div>
-        ))}
+      {/* Thresholds */}
+      <div className="w-full">
+        <h4 className="font-label-md text-label-md text-on-surface mb-4">Analysis Thresholds</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {thresholds.map(({ key, label, description, defaultValue }) => (
+            <div key={key} className="glass-panel border-t border-t-outline-variant/30 rounded-lg p-4 flex flex-col gap-3">
+              <span className="font-label-sm text-label-sm text-on-surface-variant font-semibold">{label}</span>
+              <input
+                className="bg-surface-container-lowest border border-outline-variant rounded px-3 py-2 text-on-surface focus:outline-none focus:border-secondary transition-colors"
+                type="number"
+                step="0.05"
+                value={(data[key] as number | undefined) ?? defaultValue}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  if (!Number.isNaN(next)) {
+                    updateThreshold(key, next);
+                  }
+                }}
+              />
+              <span className="text-xs text-on-surface-variant leading-relaxed">{description}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
